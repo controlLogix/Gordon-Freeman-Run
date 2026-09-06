@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Anomalous Materials</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Share+Tech+Mono&display=swap">
+<style>
+  :root{
+    --void:#0b0d0c;
+    --concrete:#1a1e1c;
+    --steel:#2c332f;
+    --hazard:#f0a32a;
+    --xen:#8a4de0;
+    --xen-lit:#c39bff;
+    --paper:#e6e9e2;
+    --dim:#7f8a80;
+    --blood:#c8322a;
+  }
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, #161a18 0%, var(--void) 70%);
+    color:var(--paper);
+    font-family:"Saira Condensed","Arial Narrow",sans-serif;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:18px 14px 34px;
+    gap:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{width:100%;max-width:960px;display:flex;flex-direction:column;gap:12px;}
+
+  header.bar{
+    display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    border-bottom:2px solid var(--steel);padding-bottom:8px;flex-wrap:wrap;
+  }
+  .lockup{display:flex;align-items:center;gap:10px;}
+  .sigil{
+    width:26px;height:26px;flex:none;
+    background:var(--hazard);
+    clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  }
+  h1{
+    margin:0;font-size:28px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    line-height:1;text-wrap:balance;
+  }
+  .sub{
+    font-family:"Share Tech Mono",ui-monospace,monospace;
+    font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;
+  }
+  .clearance{
+    font-family:"Share Tech Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.14em;
+    color:var(--void);background:var(--hazard);padding:3px 8px;
+  }
+
+  .screen{
+    position:relative;width:100%;aspect-ratio:16/9;
+    background:#000;border:1px solid var(--steel);
+    box-shadow:0 0 0 4px #000, 0 18px 50px rgba(0,0,0,.7);
+    overflow:hidden;
+  }
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;}
+  .scan{
+    position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,.16) 0 1px, rgba(0,0,0,0) 1px 3px);
+    mix-blend-mode:multiply;
+  }
+
+  .telemetry{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;
+    background:var(--steel);border:1px solid var(--steel);
+  }
+  .cell{background:var(--concrete);padding:7px 10px;display:flex;flex-direction:column;gap:2px;}
+  .cell b{
+    font-family:"Share Tech Mono",monospace;font-size:10px;letter-spacing:.16em;
+    color:var(--dim);font-weight:400;text-transform:uppercase;
+  }
+  .cell span{font-family:"Share Tech Mono",monospace;font-size:19px;font-variant-numeric:tabular-nums;}
+  .cell.warn span{color:var(--hazard);}
+  .cell.xen span{color:var(--xen-lit);}
+
+  .keys{
+    display:flex;flex-wrap:wrap;gap:6px 18px;
+    font-family:"Share Tech Mono",monospace;font-size:12px;color:var(--dim);
+  }
+  .keys kbd{
+    background:var(--steel);color:var(--paper);border-bottom:2px solid #111412;
+    padding:1px 6px;font:inherit;
+  }
+  .keys em{font-style:normal;color:var(--paper);}
+
+  .pad{display:none;gap:8px;}
+  @media (pointer:coarse){ .pad{display:flex;} }
+  .pad .grp{display:flex;gap:8px;flex:1;}
+  .pad button{
+    flex:1;padding:16px 0;background:var(--steel);color:var(--paper);
+    border:0;border-bottom:3px solid #111412;
+    font-family:"Share Tech Mono",monospace;font-size:13px;letter-spacing:.1em;
+    touch-action:none;user-select:none;
+  }
+  .pad button:active{background:var(--hazard);color:var(--void);}
+  .pad button.shift:active{background:var(--xen);color:#fff;}
+
+  footer{
+    font-family:"Share Tech Mono",monospace;font-size:11px;color:#4d554e;
+    letter-spacing:.1em;text-align:center;max-width:64ch;line-height:1.7;
+  }
+  button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){ .scan{display:none;} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="bar">
+    <div class="lockup">
+      <div class="sigil"></div>
+      <div>
+        <h1>Anomalous Materials</h1>
+        <div class="sub">Sector C Test Labs &middot; Specimen Transport</div>
+      </div>
+    </div>
+    <div class="clearance">CLEARANCE: RESEARCH ASSOCIATE</div>
+  </header>
+
+  <div class="screen"><canvas id="cv" width="480" height="270"></canvas><div class="scan"></div></div>
+
+  <div class="telemetry">
+    <div class="cell"><b>Distance</b><span id="t-dist">0 m</span></div>
+    <div class="cell"><b>Samples</b><span id="t-score">0</span></div>
+    <div class="cell warn"><b>Best Run</b><span id="t-best">0 m</span></div>
+    <div class="cell xen"><b>Phase Charge</b><span id="t-chg">100%</span></div>
+  </div>
+
+  <div class="keys">
+    <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> <em>move</em></span>
+    <span><kbd>Space</kbd> <em>jump (hold = higher)</em></span>
+    <span><kbd>Shift</kbd> <em>phase to Xen</em></span>
+    <span><kbd>K</kbd> <em>crowbar</em></span>
+    <span><kbd>R</kbd> <em>restart</em></span>
+    <span><kbd>M</kbd> <em>mute</em></span>
+  </div>
+
+  <div class="pad">
+    <div class="grp">
+      <button id="p-left">&larr;</button>
+      <button id="p-right">&rarr;</button>
+    </div>
+    <div class="grp">
+      <button id="p-bar">CROWBAR</button>
+      <button id="p-jump">JUMP</button>
+      <button id="p-shift" class="shift">PHASE</button>
+    </div>
+  </div>
+
+  <footer>
+    The cascade left both dimensions stacked on the same floor plan. Concrete you can stand on
+    in Black Mesa is empty air in Xen &mdash; and the far side of a chasm only exists over there.
+    Phase across, but watch the charge: when it hits zero the borderworld spits you back.
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------------------------------------------------------- setup */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+const W = 480, H = 270;
+
+const UI = {
+  dist: document.getElementById("t-dist"),
+  score: document.getElementById("t-score"),
+  best: document.getElementById("t-best"),
+  chg: document.getElementById("t-chg")
+};
+
+const C = {
+  void:"#0b0d0c", concrete:"#1a1e1c", steel:"#2c332f", light:"#3d453f",
+  hazard:"#f0a32a", hazard2:"#a8701a", paper:"#e6e9e2", dim:"#7f8a80",
+  blood:"#c8322a", coat:"#e8ebe4", coatShade:"#b9beb6", skin:"#d8a077",
+  skinShade:"#b57f58", hair:"#5a3a20", tie:"#3a5fa8", pant:"#3b4a55",
+  xen:"#8a4de0", xenLit:"#c39bff", xenGoo:"#6ee36e"
+};
+
+/* ------------------------------------------------------------ tiny audio */
+let audioOn = true, actx = null;
+function blip(freq, dur, type, gain){
+  if(!audioOn) return;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || "square"; o.frequency.value = freq;
+    g.gain.value = gain || 0.05;
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  }catch(e){}
+}
+
+/* ------------------------------------------------------------- constants */
+const GROUND = 208;
+const G_MESA = 0.48, G_XEN = 0.22;
+const JUMP_MESA = -7.6, JUMP_XEN = -5.9;
+const RUN_MAX = 2.15, ACCEL = 0.42, FRICTION = 0.26;
+const PW = 11, PH = 19;
+const CHARGE_MAX = 100, DRAIN = 0.62, REGEN = 0.34;
+
+/* ------------------------------------------------------------------ state */
+let keys = {}, game = null, best = 0;
+try { best = parseInt(localStorage.getItem("am_best")||"0",10) || 0; } catch(e){}
+
+function newGame(){
+  return {
+    mode:"title", t:0,
+    cam:0, dim:"mesa", shiftT:0, charge:CHARGE_MAX, blocked:0,
+    plats:[], mobs:[], picks:[], parts:[],
+    genX:0, dist:0, score:0, deathT:0, cause:"",
+    p:{ x:40, y:GROUND-PH, vx:0, vy:0, on:false, face:1, coyote:0, buf:0,
+        held:false, swing:0, cool:0, anim:0 }
+  };
+}
+
+/* -------------------------------------------------------------- level gen */
+function plat(x,y,w,h,layer,kind){ return {x:x,y:y,w:w,h:h,layer:layer,kind:kind||"floor"}; }
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function ri(a,b){ return Math.floor(rnd(a,b+1)); }
+
+function addMob(g, x, y, kind, l, r){
+  if(kind==="crab") g.mobs.push({kind:"crab",x:x,y:y-8,w:11,h:8,vx:Math.random()<0.5?-0.5:0.5,l:l,r:r,dead:0,hop:Math.random()*60});
+  else g.mobs.push({kind:"floater",x:x,y:y-30,w:12,h:12,base:y-30,ph:Math.random()*6.28,dead:0});
+}
+function addPick(g, x, y, kind){ g.picks.push({x:x,y:y,kind:kind,got:0,ph:Math.random()*6.28}); }
+
+function generate(g){
+  const d = Math.min(1, g.genX/9000);   // difficulty ramp
+  const x = g.genX;
+  const roll = Math.random();
+  let adv;
+
+  if(x < 340){                                   // safe opening runway
+    g.plats.push(plat(x, GROUND, 340, 62, "both"));
+    adv = 340;
+  } else if(roll < 0.30 - 0.10*d){               // A. plain floor, maybe a crab
+    const w = ri(120, 190);
+    g.plats.push(plat(x, GROUND, w, 62, "both"));
+    if(Math.random() < 0.45 + 0.25*d) addMob(g, x+w/2, GROUND, "crab", x+10, x+w-10);
+    if(Math.random() < 0.35) addPick(g, x+w/2, GROUND-40, "vial");
+    adv = w + ri(24, 40 + 14*d);
+  } else if(roll < 0.52){                        // B. staircase of ledges
+    let cx = x, cy = GROUND;
+    const n = ri(2,4);
+    for(let i=0;i<n;i++){
+      const w = ri(46, 74);
+      cy = Math.max(126, Math.min(GROUND, cy + ri(-30,-14)));
+      g.plats.push(plat(cx, cy, w, GROUND+62-cy, "both"));
+      if(i===n-1 && Math.random()<0.6) addPick(g, cx+w/2, cy-26, "cell");
+      cx += w + ri(26, 40);
+    }
+    g.plats.push(plat(cx, GROUND, ri(90,140), 62, "both"));
+    adv = (cx - x) + 120;
+  } else if(roll < 0.74){                        // C. chasm bridged only in Xen
+    g.plats.push(plat(x, GROUND, 70, 62, "both"));
+    const gap = ri(96, 118 + 22*d);
+    const sh = ri(48, 66);
+    g.plats.push(plat(x+70+(gap-sh)/2, GROUND-38, sh, 12, "xen", "shelf"));
+    addPick(g, x+70+gap/2, GROUND-66, "cell");
+    if(Math.random() < 0.4 + 0.3*d) addMob(g, x+70+gap/2, GROUND-38, "floater", 0, 0);
+    g.plats.push(plat(x+70+gap, GROUND, ri(110,160), 62, "both"));
+    adv = 70 + gap + 130;
+  } else if(roll < 0.88){                        // D. blast pillar: solid in Mesa only
+    const w = ri(150, 210);
+    g.plats.push(plat(x, GROUND, w, 62, "both"));
+    const pxx = x + ri(50, w-70);
+    g.plats.push(plat(pxx, GROUND-52, 16, 52, "mesa", "pillar"));
+    g.plats.push(plat(pxx, GROUND-92, 16, 34, "mesa", "pillar"));
+    if(Math.random()<0.5) addPick(g, pxx+8, GROUND-118, "vial");
+    adv = w + ri(26, 42);
+  } else {                                       // E. Xen shelves over a Mesa grate
+    const w = ri(150, 210);
+    g.plats.push(plat(x, GROUND, w, 62, "mesa", "grate"));
+    let cx = x + 12;
+    while(cx < x + w - 40){
+      const pw = ri(40, 58);
+      g.plats.push(plat(cx, GROUND-52, pw, 11, "xen", "shelf"));
+      cx += pw + ri(20, 30);
+    }
+    addPick(g, x+w/2, GROUND-80, "vial");
+    if(Math.random()<0.6) addMob(g, x+w/2, GROUND, "crab", x+14, x+w-14);
+    adv = w + ri(24, 38);
+  }
+  g.genX = x + adv;
+}
+
+/* ------------------------------------------------------------- collisions */
+function solid(g, p){ return p.layer==="both" || p.layer===g.dim; }
+function hit(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+/* --------------------------------------------------------------- particles */
+function burst(g,x,y,n,col,spd){
+  for(let i=0;i<n;i++){
+    const a = Math.random()*6.283, s = rnd(0.4, spd||2.2);
+    g.parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-0.4,life:rnd(16,34),col:col});
+  }
+}
+
+/* -------------------------------------------------------------- the update */
+function tryShift(g){
+  const p = g.p;
+  const target = g.dim === "mesa" ? "xen" : "mesa";
+  if(target === "xen" && g.charge < 12){ g.blocked = 20; blip(90,0.12,"sawtooth",0.05); return; }
+  const prev = g.dim;
+  g.dim = target;
+  for(const pl of g.plats){
+    if(solid(g,pl) && hit(p.x,p.y,PW,PH,pl.x,pl.y,pl.w,pl.h)){
+      g.dim = prev; g.blocked = 20; blip(80,0.14,"sawtooth",0.05); return;
+    }
+  }
+  g.shiftT = 16;
+  burst(g, p.x+PW/2, p.y+PH/2, 18, target==="xen"?C.xenLit:C.hazard, 3);
+  blip(target==="xen"?520:300, 0.16, "sine", 0.06);
+  blip(target==="xen"?780:200, 0.22, "triangle", 0.04);
+}
+
+function die(g, cause){
+  if(g.mode !== "play") return;
+  g.mode = "dead"; g.deathT = 0; g.cause = cause;
+  burst(g, g.p.x+PW/2, g.p.y+PH/2, 26, C.blood, 3.2);
+  blip(160,0.5,"sawtooth",0.07);
+  const m = Math.floor(g.dist/10);
+  if(m > best){ best = m; try{ localStorage.setItem("am_best", String(best)); }catch(e){} }
+}
+
+function update(g){
+  g.t++;
+  const p = g.p;
+
+  if(g.mode === "dead"){
+    g.deathT++;
+    p.vy += G_MESA; p.y += p.vy; p.x += p.vx*0.4;
+    stepParts(g);
+    return;
+  }
+  if(g.mode !== "play"){ stepParts(g); return; }
+
+  /* phase charge */
+  if(g.dim === "xen"){
+    g.charge -= DRAIN;
+    if(g.charge <= 0){
+      g.charge = 0; g.dim = "mesa"; g.shiftT = 16; g.blocked = 20;
+      burst(g, p.x+PW/2, p.y+PH/2, 16, C.hazard, 3);
+      blip(200,0.2,"sawtooth",0.05);
+      for(const pl of g.plats){                 // ejected inside concrete: lethal
+        if(solid(g,pl) && hit(p.x,p.y,PW,PH,pl.x,pl.y,pl.w,pl.h)){ die(g,"REMATERIALIZED INSIDE MASS"); return; }
+      }
+    }
+  } else if(g.charge < CHARGE_MAX){
+    g.charge = Math.min(CHARGE_MAX, g.charge + REGEN);
+  }
+  if(g.shiftT>0) g.shiftT--;
+  if(g.blocked>0) g.blocked--;
+
+  const grav = g.dim==="xen" ? G_XEN : G_MESA;
+
+  /* horizontal */
+  const dir = (keys.right?1:0) - (keys.left?1:0);
+  if(dir !== 0){ p.vx += dir*ACCEL; p.face = dir; }
+  else { p.vx -= Math.sign(p.vx)*Math.min(Math.abs(p.vx), FRICTION); }
+  p.vx = Math.max(-RUN_MAX, Math.min(RUN_MAX, p.vx));
+  const push = 0.34 + Math.min(0.5, g.dist/24000);
+  p.x += p.vx + push;
+
+  for(const pl of g.plats){
+    if(!solid(g,pl)) continue;
+    if(!hit(p.x,p.y,PW,PH,pl.x,pl.y,pl.w,pl.h)) continue;
+    if(p.vx + push > 0) p.x = pl.x - PW; else p.x = pl.x + pl.w;
+    p.vx = 0;
+  }
+
+  /* vertical */
+  if(p.buf>0) p.buf--;
+  if(p.coyote>0) p.coyote--;
+  if(p.buf>0 && p.coyote>0){
+    p.vy = g.dim==="xen" ? JUMP_XEN : JUMP_MESA;
+    p.buf = 0; p.coyote = 0; p.held = true;
+    burst(g, p.x+PW/2, p.y+PH, 5, C.dim, 1.2);
+    blip(g.dim==="xen"?440:330, 0.08, "square", 0.045);
+  }
+  if(!keys.jump && p.vy < 0 && p.held){ p.vy *= 0.5; p.held = false; }
+
+  p.vy = Math.min(p.vy + grav, 9);
+  p.y += p.vy;
+  p.on = false;
+  for(const pl of g.plats){
+    if(!solid(g,pl)) continue;
+    if(!hit(p.x,p.y,PW,PH,pl.x,pl.y,pl.w,pl.h)) continue;
+    if(p.vy > 0){ p.y = pl.y - PH; p.vy = 0; p.on = true; p.coyote = 6; }
+    else { p.y = pl.y + pl.h; p.vy = 0.4; }
+  }
+  if(p.on) p.anim += Math.abs(p.vx + push)*0.22;
+
+  /* crowbar timers */
+  if(p.cool>0) p.cool--;
+  if(p.swing>0) p.swing--;
+  const barX = p.face>0 ? p.x+PW : p.x-13;
+
+  /* mobs */
+  for(const m of g.mobs){
+    if(m.dead){ m.dead++; continue; }
+    const active = (m.kind==="crab") === (g.dim==="mesa");
+    if(m.kind==="crab"){
+      if(active){
+        m.hop++;
+        m.x += m.vx;
+        if(m.x < m.l || m.x + m.w > m.r) m.vx *= -1;
+        m.y = GROUND - 8 - Math.max(0, Math.sin(m.hop*0.16)*5);
+      }
+    } else {
+      m.ph += 0.05;
+      m.y = m.base + Math.sin(m.ph)*9;
+    }
+    if(!active) continue;
+
+    const barred = p.swing>0 && hit(barX,p.y+3,13,13,m.x,m.y,m.w,m.h);
+    if(barred){
+      m.dead = 1; g.score += 75;
+      burst(g, m.x+m.w/2, m.y+m.h/2, 12, m.kind==="crab"?C.blood:C.xenGoo, 2.4);
+      blip(220,0.1,"square",0.05);
+      continue;
+    }
+    if(hit(p.x,p.y,PW,PH,m.x,m.y,m.w,m.h)){
+      const stomped = p.vy > 1.0 && (p.y + PH) < m.y + m.h*0.8;
+      if(stomped){
+        m.dead = 1; g.score += 75;
+        burst(g, m.x+m.w/2, m.y+m.h/2, 12, m.kind==="crab"?C.blood:C.xenGoo, 2.4);
+        p.vy = (g.dim==="xen"?JUMP_XEN:JUMP_MESA)*0.72; p.held = true;
+        blip(260,0.1,"square",0.05);
+      } else {
+        die(g, m.kind==="crab" ? "HEADCRAB ATTACHMENT" : "VORTIC DISCHARGE");
+        return;
+      }
+    }
+  }
+
+  /* pickups */
+  for(const k of g.picks){
+    if(k.got) continue;
+    k.ph += 0.08;
+    if(hit(p.x,p.y,PW,PH,k.x-5,k.y-6+Math.sin(k.ph)*2,11,12)){
+      k.got = 1;
+      if(k.kind==="cell"){ g.charge = Math.min(CHARGE_MAX, g.charge+38); burst(g,k.x,k.y,10,C.xenLit,2); blip(700,0.1,"sine",0.05); }
+      else { g.score += 150; burst(g,k.x,k.y,10,C.hazard,2); blip(880,0.09,"triangle",0.05); }
+    }
+  }
+
+  if(p.y > H + 40) die(g, "FELL INTO THE VOID");
+  if(p.x < g.cam + 4) p.x = g.cam + 4;
+
+  g.dist = Math.max(g.dist, p.x - 40);
+  g.cam = Math.max(g.cam, p.x - 150);
+
+  while(g.genX < g.cam + W + 300) generate(g);
+  const cut = g.cam - 200;
+  if(g.t % 30 === 0){
+    g.plats = g.plats.filter(o => o.x + o.w > cut);
+    g.mobs  = g.mobs.filter(o => o.x + 40 > cut && o.dead < 20);
+    g.picks = g.picks.filter(o => o.x + 20 > cut);
+  }
+  stepParts(g);
+}
+
+function stepParts(g){
+  for(const q of g.parts){ q.x += q.vx; q.y += q.vy; q.vy += 0.14; q.life--; }
+  g.parts = g.parts.filter(q => q.life > 0);
+}
+
+/* ------------------------------------------------------------- the drawing */
+function R(v){ return Math.round(v); }
+
+function drawBackground(g){
+  const xen = g.dim === "xen";
+  ctx.fillStyle = xen ? "#160a26" : "#0e1211";
+  ctx.fillRect(0,0,W,H);
+  const cam = g.cam;
+
+  if(xen){
+    for(let i=0;i<40;i++){
+      const sx = ((i*137 - cam*0.12) % (W+40) + W+40) % (W+40) - 20;
+      const sy = (i*61) % 190 + 8;
+      const tw = 0.4 + 0.6*Math.abs(Math.sin(g.t*0.02 + i));
+      ctx.fillStyle = i%3===0 ? C.xenGoo : C.xenLit;
+      ctx.globalAlpha = 0.18 + tw*0.3;
+      ctx.fillRect(R(sx), R(sy + Math.sin(g.t*0.01+i)*4), 2, 2);
+    }
+    ctx.globalAlpha = 1;
+    for(let i=0;i<7;i++){
+      const bx = ((i*260 - cam*0.24) % 1200 + 1200) % 1200 - 200;
+      const by = 40 + (i*47)%80;
+      const bw = 90 + (i*29)%70;
+      ctx.fillStyle = "#2a1440"; ctx.fillRect(R(bx), R(by), bw, 14);
+      ctx.fillStyle = "#3d1f5c"; ctx.fillRect(R(bx+8), R(by-4), bw-16, 5);
+      ctx.fillStyle = C.xenGoo; ctx.globalAlpha = 0.25;
+      ctx.fillRect(R(bx+8), R(by+14), bw-16, 3);
+      ctx.globalAlpha = 1;
+    }
+  } else {
+    for(let i=0;i<9;i++){
+      const bx = ((i*180 - cam*0.2) % 1620 + 1620) % 1620 - 200;
+      ctx.fillStyle = "#151917"; ctx.fillRect(R(bx), 30, 140, 178);
+      ctx.fillStyle = "#1c2220"; ctx.fillRect(R(bx+10), 44, 120, 40);
+      ctx.fillStyle = "#0c100e";
+      for(let k=0;k<4;k++) ctx.fillRect(R(bx+16+k*30), 50, 20, 28);
+      ctx.fillStyle = "#242b27"; ctx.fillRect(R(bx+4), 96, 132, 3);
+    }
+    for(let i=0;i<16;i++){
+      const lx = ((i*120 - cam*0.45) % 1920 + 1920) % 1920 - 120;
+      ctx.fillStyle = "#202723"; ctx.fillRect(R(lx), 108, 120, 6);
+      ctx.fillStyle = "#171d1a"; ctx.fillRect(R(lx), 114, 120, 2);
+      ctx.fillStyle = C.hazard; ctx.globalAlpha = 0.5;
+      ctx.fillRect(R(lx+52), 118, 8, 3);
+      ctx.globalAlpha = 0.10; ctx.fillRect(R(lx+44), 121, 24, 26);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = "#1b201d"; ctx.fillRect(0, 150, W, 4);
+    for(let i=0;i<24;i++){
+      const sx = ((i*80 - cam*0.6) % 1920 + 1920) % 1920 - 80;
+      ctx.fillStyle = (i%2) ? C.hazard2 : "#26302a";
+      ctx.fillRect(R(sx), 154, 40, 3);
+    }
+  }
+}
+
+function drawPlatform(g, pl){
+  const isSolid = solid(g, pl);
+  const x = R(pl.x - g.cam), y = R(pl.y), w = pl.w, h = pl.h;
+  if(x > W || x + w < 0) return;
+
+  if(!isSolid){
+    ctx.globalAlpha = 0.30;
+    ctx.strokeStyle = pl.layer === "xen" ? C.xen : C.hazard2;
+    ctx.setLineDash([3,3]);
+    ctx.strokeRect(x+0.5, y+0.5, w-1, Math.min(h,26)-1);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    return;
+  }
+
+  if(pl.layer === "xen"){
+    ctx.fillStyle = "#3d1f5c"; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = C.xen;     ctx.fillRect(x, y, w, 3);
+    ctx.fillStyle = C.xenGoo;
+    for(let i=2;i<w-2;i+=9) ctx.fillRect(x+i, y+3, 2, 2);
+    ctx.fillStyle = "#221036"; ctx.fillRect(x, y+h-2, w, 2);
+  } else if(pl.kind === "pillar"){
+    ctx.fillStyle = C.steel; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = C.light; ctx.fillRect(x, y, w, 2);
+    ctx.fillStyle = C.hazard;
+    for(let i=0;i<h-6;i+=10) ctx.fillRect(x+2, y+4+i, w-4, 3);
+    ctx.fillStyle = "#101413"; ctx.fillRect(x+w-2, y, 2, h);
+  } else {
+    ctx.fillStyle = C.concrete; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = C.steel;    ctx.fillRect(x, y, w, 4);
+    ctx.fillStyle = C.light;    ctx.fillRect(x, y, w, 1);
+    if(pl.kind === "grate"){
+      ctx.fillStyle = "#131715";
+      for(let i=0;i<w;i+=6) ctx.fillRect(x+i+1, y+5, 3, 4);
+    }
+    ctx.fillStyle = "#121614";
+    for(let i=(R(pl.x)%22); i<w; i+=22) ctx.fillRect(x+i, y+6, 1, h-6);
+    ctx.fillStyle = C.hazard2; ctx.globalAlpha = 0.35;
+    ctx.fillRect(x, y+4, Math.min(w,6), 2);
+    ctx.fillRect(x+w-Math.min(w,6), y+4, Math.min(w,6), 2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawGordon(g){
+  const p = g.p, x = R(p.x - g.cam), y = R(p.y), f = p.face;
+  const run = p.on ? Math.floor(p.anim) % 4 : 4;
+  const legA = (run===0||run===1) ? 0 : 2;
+  const legB = (run===0||run===1) ? 2 : 0;
+  const bob = (run===1||run===3) ? 1 : 0;
+  const yy = y + bob;
+
+  if(g.dim === "xen"){
+    ctx.globalAlpha = 0.28; ctx.fillStyle = C.xenLit;
+    ctx.fillRect(x-2, yy-2, 15, 24);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.fillStyle = C.pant;
+  ctx.fillRect(x+2, yy+13, 3, 6-legA);
+  ctx.fillRect(x+6, yy+13, 3, 6-legB);
+  ctx.fillStyle = "#15191c";
+  ctx.fillRect(x+1, yy+19-legA, 4, 2);
+  ctx.fillRect(x+6, yy+19-legB, 4, 2);
+
+  ctx.fillStyle = C.coat;      ctx.fillRect(x+1, yy+7, 9, 8);
+  ctx.fillStyle = C.coatShade; ctx.fillRect(f>0 ? x+1 : x+9, yy+7, 1, 8);
+  ctx.fillRect(x+1, yy+14, 9, 1);
+  ctx.fillStyle = "#c9cec6"; ctx.fillRect(x+3, yy+7, 5, 1);
+  ctx.fillStyle = C.tie;     ctx.fillRect(x+5, yy+8, 2, 4);
+  ctx.fillStyle = C.coat;    ctx.fillRect(f>0 ? x+8 : x+1, yy+8, 2, 5);
+  ctx.fillStyle = C.skin;    ctx.fillRect(f>0 ? x+9 : x+1, yy+12, 2, 2);
+
+  ctx.fillStyle = C.skin;      ctx.fillRect(x+2, yy+1, 7, 6);
+  ctx.fillStyle = C.skinShade; ctx.fillRect(x+2, yy+6, 7, 1);
+  ctx.fillStyle = C.hair;      ctx.fillRect(x+2, yy, 7, 2);
+  ctx.fillRect(f>0 ? x+2 : x+8, yy+1, 1, 3);
+  ctx.fillStyle = "#6b4526";   ctx.fillRect(x+3, yy+5, 5, 2);
+  ctx.fillStyle = C.skin;      ctx.fillRect(f>0 ? x+6 : x+4, yy+5, 1, 1);
+  ctx.fillStyle = "#101010";   ctx.fillRect(x+2, yy+3, 7, 2);
+  ctx.fillStyle = "#9fd8e8";   ctx.fillRect(f>0 ? x+6 : x+3, yy+3, 2, 1);
+
+  if(p.swing > 0){
+    const t = p.swing/12;
+    ctx.fillStyle = "#b8352b";
+    const bx = f>0 ? x+10 : x-5;
+    if(t > 0.6){ ctx.fillRect(bx, yy+1, 5, 2); ctx.fillRect(f>0?bx+3:bx, yy+1, 2, 6); }
+    else { ctx.fillRect(bx, yy+8, 5, 2); ctx.fillRect(f>0?bx+3:bx, yy+6, 2, 4); }
+  } else {
+    ctx.fillStyle = "#8e2a22";
+    ctx.fillRect(f>0 ? x+9 : x+1, yy+9, 2, 6);
+  }
+}
+
+function drawMobs(g){
+  for(const m of g.mobs){
+    const x = R(m.x - g.cam), y = R(m.y);
+    if(x > W+20 || x < -20) continue;
+    const active = (m.kind==="crab") === (g.dim==="mesa");
+    let a = 1;
+    if(m.dead) a = Math.max(0, 1 - m.dead/20);
+    else if(!active) a = 0.25;
+    ctx.globalAlpha = a;
+
+    if(m.kind === "crab"){
+      ctx.fillStyle = active ? "#c98a4a" : "#6d5a44";
+      ctx.fillRect(x+1, y+1, 9, 4);
+      ctx.fillStyle = active ? "#9c6531" : "#54452f";
+      ctx.fillRect(x+2, y, 7, 2);
+      ctx.fillStyle = "#3c2716";
+      ctx.fillRect(x, y+5, 2, 3); ctx.fillRect(x+4, y+6, 2, 2); ctx.fillRect(x+9, y+5, 2, 3);
+      ctx.fillStyle = "#f6d9a0"; ctx.fillRect(x+3, y+2, 1, 1); ctx.fillRect(x+7, y+2, 1, 1);
+    } else {
+      ctx.globalAlpha = a*0.4;
+      ctx.fillStyle = C.xenGoo;
+      ctx.fillRect(x-1, R(y-1+Math.sin(m.ph*2)*1.5), 14, 15);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = active ? C.xenGoo : "#3f5c3f"; ctx.fillRect(x+2, y+2, 8, 8);
+      ctx.fillStyle = active ? "#e8ffe8" : "#5a7a5a"; ctx.fillRect(x+4, y+4, 4, 4);
+      ctx.fillStyle = "#1c3a1c";
+      ctx.fillRect(x+1, y+10, 2, 3); ctx.fillRect(x+9, y+10, 2, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawPicks(g){
+  for(const k of g.picks){
+    if(k.got) continue;
+    const x = R(k.x - g.cam), y = R(k.y + Math.sin(k.ph)*2);
+    if(x > W+20 || x < -20) continue;
+    if(k.kind === "cell"){
+      ctx.fillStyle = C.xenLit; ctx.globalAlpha = 0.22;
+      ctx.fillRect(x-7, y-8, 14, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#2a1440"; ctx.fillRect(x-4, y-6, 8, 12);
+      ctx.fillStyle = C.xen;     ctx.fillRect(x-3, y-5, 6, 10);
+      ctx.fillStyle = C.xenLit;  ctx.fillRect(x-2, y-4+((g.t>>3)%6), 4, 2);
+    } else {
+      ctx.fillStyle = C.hazard; ctx.globalAlpha = 0.18;
+      ctx.fillRect(x-7, y-8, 14, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#cfd6cc"; ctx.fillRect(x-3, y-6, 6, 12);
+      ctx.fillStyle = C.hazard;  ctx.fillRect(x-2, y-2, 4, 7);
+      ctx.fillStyle = "#8f9a90"; ctx.fillRect(x-4, y-7, 8, 2);
+    }
+  }
+}
+
+function drawParts(g){
+  for(const q of g.parts){
+    ctx.globalAlpha = Math.max(0, Math.min(1, q.life/24));
+    ctx.fillStyle = q.col;
+    ctx.fillRect(R(q.x - g.cam), R(q.y), 2, 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHud(g){
+  const bw = 96;
+  ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(8, 8, bw+4, 12);
+  ctx.strokeStyle = g.blocked>0 ? C.blood : (g.charge<25 ? C.hazard : C.steel);
+  ctx.lineWidth = 1; ctx.strokeRect(8.5, 8.5, bw+3, 11);
+  const fill = Math.round(bw * g.charge/CHARGE_MAX);
+  ctx.fillStyle = g.charge < 25 ? C.hazard : C.xen;
+  ctx.fillRect(10, 10, fill, 8);
+  ctx.fillStyle = g.charge < 25 ? "#ffd58a" : C.xenLit;
+  ctx.fillRect(10, 10, fill, 2);
+
+  ctx.font = "8px 'Share Tech Mono', monospace";
+  ctx.fillStyle = C.dim;
+  ctx.fillText("PHASE", 12, 29);
+  ctx.textAlign = "right";
+  ctx.fillStyle = g.dim==="xen" ? C.xenLit : C.hazard;
+  ctx.fillText(g.dim==="xen" ? "BORDERWORLD // XEN" : "BLACK MESA // SECTOR C", W-8, 16);
+  ctx.fillStyle = C.paper;
+  ctx.font = "10px 'Share Tech Mono', monospace";
+  ctx.fillText(Math.floor(g.dist/10) + " M", W-8, 30);
+  ctx.textAlign = "left";
+
+  if(g.blocked > 0){
+    ctx.fillStyle = C.blood; ctx.font = "8px 'Share Tech Mono', monospace";
+    ctx.fillText(g.charge < 12 ? "CHARGE DEPLETED" : "PHASE BLOCKED / SOLID MASS", 12, 41);
+  }
+}
+
+function panel(lines){
+  ctx.fillStyle = "rgba(4,6,5,.84)"; ctx.fillRect(0,0,W,H);
+  ctx.textAlign = "center";
+  let y = 74;
+  for(const l of lines){
+    ctx.font = l.f; ctx.fillStyle = l.c;
+    ctx.fillText(l.t, W/2, y);
+    y += l.gap;
+  }
+  ctx.textAlign = "left";
+}
+
+function draw(g){
+  drawBackground(g);
+  for(const pl of g.plats) drawPlatform(g, pl);
+  drawPicks(g);
+  drawMobs(g);
+  if(g.mode !== "dead" || g.deathT < 90) drawGordon(g);
+  drawParts(g);
+
+  if(g.shiftT > 0){
+    ctx.globalAlpha = g.shiftT/16 * 0.5;
+    ctx.fillStyle = g.dim==="xen" ? C.xen : C.hazard;
+    ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha = 1;
+  }
+  if(g.dim === "xen"){
+    ctx.globalAlpha = 0.10; ctx.fillStyle = C.xen; ctx.fillRect(0,0,W,H); ctx.globalAlpha = 1;
+  }
+
+  drawHud(g);
+
+  if(g.mode === "title"){
+    panel([
+      {t:"ANOMALOUS MATERIALS", f:"bold 22px 'Share Tech Mono', monospace", c:C.hazard, gap:20},
+      {t:"the cascade stacked two worlds on one floor plan", f:"10px 'Share Tech Mono', monospace", c:C.dim, gap:32},
+      {t:"SHIFT phases you into Xen: concrete becomes air,", f:"10px 'Share Tech Mono', monospace", c:C.paper, gap:15},
+      {t:"the void becomes ground, headcrabs go inert.", f:"10px 'Share Tech Mono', monospace", c:C.paper, gap:30},
+      {t:"ARROWS move    SPACE jump    K crowbar", f:"10px 'Share Tech Mono', monospace", c:C.dim, gap:28},
+      {t:"PRESS SPACE TO CLOCK IN", f:"bold 13px 'Share Tech Mono', monospace", c:C.xenLit, gap:0}
+    ]);
+  } else if(g.mode === "dead"){
+    panel([
+      {t:"SPECIMEN LOST", f:"bold 20px 'Share Tech Mono', monospace", c:C.blood, gap:20},
+      {t:g.cause, f:"10px 'Share Tech Mono', monospace", c:C.dim, gap:34},
+      {t:Math.floor(g.dist/10) + " METERS   /   " + g.score + " SAMPLES", f:"13px 'Share Tech Mono', monospace", c:C.paper, gap:20},
+      {t:"BEST ON RECORD: " + best + " M", f:"10px 'Share Tech Mono', monospace", c:C.hazard, gap:32},
+      {t:"PRESS R TO RESUME YOUR SHIFT", f:"bold 12px 'Share Tech Mono', monospace", c:C.xenLit, gap:0}
+    ]);
+  }
+}
+
+/* ------------------------------------------------------------------- input */
+function restart(){ const b = best; game = newGame(); best = b; game.mode = "play"; }
+function jumpPress(){
+  if(game.mode === "title"){ game.mode = "play"; return; }
+  if(game.mode === "dead") return;
+  game.p.buf = 7;
+}
+function swing(){
+  if(game.mode !== "play" || game.p.cool > 0) return;
+  game.p.swing = 12; game.p.cool = 22;
+  blip(150, 0.07, "square", 0.04);
+}
+
+const KEYMAP = { ArrowLeft:"left", KeyA:"left", ArrowRight:"right", KeyD:"right" };
+addEventListener("keydown", e => {
+  const k = e.code;
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space","ShiftLeft","ShiftRight"].indexOf(k) >= 0) e.preventDefault();
+  if(KEYMAP[k]) keys[KEYMAP[k]] = true;
+  if(k==="Space" || k==="ArrowUp" || k==="KeyW"){ if(!keys.jump) jumpPress(); keys.jump = true; }
+  if((k==="ShiftLeft"||k==="ShiftRight") && !e.repeat && game.mode==="play") tryShift(game);
+  if(k==="KeyK" || k==="KeyJ") swing();
+  if(k==="KeyR") restart();
+  if(k==="KeyM") audioOn = !audioOn;
+});
+addEventListener("keyup", e => {
+  const k = e.code;
+  if(KEYMAP[k]) keys[KEYMAP[k]] = false;
+  if(k==="Space" || k==="ArrowUp" || k==="KeyW") keys.jump = false;
+});
+
+function bindPad(id, on, off){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener("touchstart", e => { e.preventDefault(); on(); }, {passive:false});
+  el.addEventListener("touchend",   e => { e.preventDefault(); if(off) off(); }, {passive:false});
+  el.addEventListener("mousedown",  e => { e.preventDefault(); on(); });
+  addEventListener("mouseup", () => { if(off) off(); });
+}
+bindPad("p-left",  ()=>keys.left=true,  ()=>keys.left=false);
+bindPad("p-right", ()=>keys.right=true, ()=>keys.right=false);
+bindPad("p-jump",  ()=>{ keys.jump=true; jumpPress(); }, ()=>keys.jump=false);
+bindPad("p-shift", ()=>{ if(game.mode==="play") tryShift(game); else restart(); });
+bindPad("p-bar",   ()=>swing());
+cv.addEventListener("pointerdown", () => {
+  if(game.mode === "title") game.mode = "play";
+  else if(game.mode === "dead") restart();
+});
+
+/* -------------------------------------------------------------- main loop */
+game = newGame();
+while(game.genX < W + 300) generate(game);
+
+let acc = 0, last = performance.now();
+function frame(now){
+  const dt = Math.min(50, now - last); last = now;
+  acc += dt;
+  let steps = 0;
+  while(acc >= 16.6667 && steps < 4){ update(game); acc -= 16.6667; steps++; }
+  draw(game);
+  UI.dist.textContent = Math.floor(game.dist/10) + " m";
+  UI.score.textContent = game.score;
+  UI.best.textContent = best + " m";
+  UI.chg.textContent = Math.round(game.charge) + "%";
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
